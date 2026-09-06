@@ -252,7 +252,7 @@ body {
 <header class="site-header">
   <div class="header-inner">
     <div>
-      <a class="brand" href="index.html">♠ Bridge Analysis</a>
+      <a class="brand" href="blog-index.html">♠ Bridge Analysis</a>
       <div class="brand-sub">hand records &amp; commentary</div>
     </div>
     <a class="new-post-btn" href="blog-post.html">+ New post</a>
@@ -263,24 +263,6 @@ body {
   <h2>Latest hands</h2>
 </div>
 
-<!-- Filter bar -->
-<div style="max-width:900px;margin:0 auto;padding:20px 24px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-  <span style="font-size:12px;font-family:'Crimson Pro',serif;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase">Filter</span>
-  <select id="filterGroup" onchange="applyFilters()" style="padding:5px 10px;font-family:'Crimson Pro',serif;font-size:13px;border:.5px solid rgba(26,21,16,.15);border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;outline:none">
-    <option value="">All groups</option>
-    <option>U26</option><option>U21</option><option>WUC</option>
-  </select>
-  <select id="filterTag" onchange="applyFilters()" style="padding:5px 10px;font-family:'Crimson Pro',serif;font-size:13px;border:.5px solid rgba(26,21,16,.15);border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;outline:none">
-    <option value="">All tags</option>
-    <option>bidding</option><option>defence</option><option>declaring</option>
-  </select>
-  <select id="filterAuthor" onchange="applyFilters()" style="padding:5px 10px;font-family:'Crimson Pro',serif;font-size:13px;border:.5px solid rgba(26,21,16,.15);border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;outline:none">
-    <option value="">All authors</option>
-  </select>
-  <button onclick="clearFilters()" style="padding:5px 12px;background:transparent;border:.5px solid rgba(26,21,16,.15);border-radius:5px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--ink3);cursor:pointer">Clear</button>
-  <span id="filterCount" style="font-size:12px;color:var(--ink3);font-style:italic;font-family:'Crimson Pro',serif"></span>
-</div>
-
 <div class="posts-wrap">
   <div id="posts" class="posts-grid">
     <div class="loading">Loading posts…</div>
@@ -288,6 +270,7 @@ body {
 </div>
 
 <script>
+/* ═══════════════════════ FIREBASE ═══════════════════════ */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCem5EbVUeKJUihyEppP1iPEh6aYNNvKhc",
   authDomain: "coaching-u26.firebaseapp.com",
@@ -300,30 +283,7 @@ const FIREBASE_CONFIG = {
 
 const SYM = { S:'♠', H:'♥', D:'♦', C:'♣' };
 const VUL = { '0':'None', 'n':'N/S vul', 'e':'E/W vul', 'b':'Both vul' };
-
-let allPosts = [];
-window._adminMode = window.location.search.includes('admin=1');
-
-document.addEventListener('keydown', function(e){
-  if(e.shiftKey && e.ctrlKey && e.key === 'A'){
-    window._adminMode = !window._adminMode;
-    // Show/hide admin indicator in header
-    let ind = document.getElementById('admin-ind');
-    if(window._adminMode){
-      if(!ind){
-        ind = document.createElement('span');
-        ind.id = 'admin-ind';
-        ind.style.cssText = 'font-size:11px;color:rgba(245,240,232,.45);font-family:"Crimson Pro",serif;font-style:italic;margin-right:12px';
-        ind.textContent = 'admin mode';
-        document.querySelector('.topbar-actions')||document.querySelector('.header-inner').appendChild(ind);
-        document.querySelector('.header-inner').insertBefore(ind, document.querySelector('.new-post-btn'));
-      }
-    } else {
-      if(ind) ind.remove();
-    }
-    applyFilters(); // re-render cards
-  }
-});
+const RANK_ORDER = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
 
 (function(){
   function loadScript(src, cb){
@@ -336,82 +296,51 @@ document.addEventListener('keydown', function(e){
       try {
         if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
         const db = firebase.database();
+        // Listen for posts, newest first
         db.ref('blog/posts').orderByChild('date').on('value', snap => {
           const data = snap.val() || {};
-          allPosts = Object.entries(data)
-            .map(([id, p]) => ({...p, _id: id}))
+          const posts = Object.entries(data)
+            .map(([id, p]) => ({id, ...p}))
             .sort((a,b) => new Date(b.date) - new Date(a.date));
-          populateAuthorFilter();
-          applyFilters();
+          renderPosts(posts, db);
         });
       } catch(e) { renderError(); }
     });
   });
 })();
 
-function populateAuthorFilter(){
-  const sel = document.getElementById('filterAuthor');
-  const current = sel.value;
-  const authors = [...new Set(allPosts.map(p=>p.author).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All authors</option>' +
-    authors.map(a=>`<option${a===current?' selected':''}>${esc(a)}</option>`).join('');
-}
-
-function applyFilters(){
-  const group = document.getElementById('filterGroup').value;
-  const tag = document.getElementById('filterTag').value;
-  const author = document.getElementById('filterAuthor').value;
-  let filtered = allPosts;
-  if (group) filtered = filtered.filter(p => p.group === group);
-  if (tag)   filtered = filtered.filter(p => (p.tags||[]).includes(tag));
-  if (author) filtered = filtered.filter(p => p.author === author);
-  const total = allPosts.length;
-  const shown = filtered.length;
-  document.getElementById('filterCount').textContent =
-    (group||tag||author) ? `${shown} of ${total} posts` : '';
-  renderPosts(filtered);
-}
-
-function clearFilters(){
-  document.getElementById('filterGroup').value = '';
-  document.getElementById('filterTag').value = '';
-  document.getElementById('filterAuthor').value = '';
-  applyFilters();
-}
-
-function renderPosts(posts){
+function renderPosts(posts, db){
   const el = document.getElementById('posts');
   if (!posts.length){
-    el.innerHTML = allPosts.length
-      ? `<div class="empty-state"><h3>No posts match</h3><p>Try clearing the filters.</p></div>`
-      : `<div class="empty-state"><h3>No posts yet</h3><p>Click <em>+ New post</em> to publish your first hand analysis.</p></div>`;
+    el.innerHTML = `<div class="empty-state">
+      <h3>No posts yet</h3>
+      <p>Click <em>+ New post</em> to publish your first hand analysis.</p>
+    </div>`;
     return;
   }
-  el.innerHTML = posts.map(p => postCard(p)).join('');
+  el.innerHTML = posts.map(p => postCard(p, db)).join('');
 }
 
-function postCard(post){
+function postCard(post, db){
   const dateStr = new Date(post.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   const contractStr = post.contract ? post.contract + (post.declarer?' by '+post.declarer:'') : '';
-  // Store JSON in data attribute - avoids quote-escaping bugs in onclick strings
-  const postJson = JSON.stringify(post).replace(/'/g, '&#39;');
-  const groupBadge = post.group
-    ? `<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(200,169,74,.15);color:#8a4a00;font-family:'Crimson Pro',serif;letter-spacing:.5px;border:.5px solid rgba(200,169,74,.3)">${esc(post.group)}</span>`
-    : '';
+  const vulStr = VUL[post.vul] || '';
 
-  return `<div class="post-card" data-post='${postJson}'>
+  // Post URL — just the Firebase post id, reader fetches the rest itself
+  const postUrl = `blog-reader.html?id=${encodeURIComponent(post.id)}`;
+
+  return `<div class="post-card" onclick="window.location='${postUrl}'">
     <div class="card-diagram">${miniCompass(post.hand)}</div>
     <div class="card-body">
       <div class="card-meta">
         <span>${dateStr}</span>
-        ${post.author ? `<span>·</span><span>${esc(post.author)}</span>` : ''}
-        ${groupBadge}
-        ${window._adminMode ? `<button class="card-del" data-id="${esc(post._id)}">delete</button>` : ''}
+        ${contractStr ? `<span>·</span><span>${contractStr}</span>` : ''}
+        ${vulStr !== 'None' && vulStr ? `<span>·</span><span>${vulStr}</span>` : ''}
+        <button class="card-del" onclick="deletePost(event,'${post.id}')">delete</button>
       </div>
       <div class="card-title">${esc(post.title)}</div>
-      ${(post.tags||[]).length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${(post.tags||[]).map(t=>`<span style="font-size:11px;padding:2px 9px;border-radius:10px;background:#e8f0e8;color:#3a6b3a;font-family:'Crimson Pro',serif;letter-spacing:.4px">${t}</span>`).join('')}</div>` : ''}
       <div class="card-excerpt">${esc(post.excerpt||'')}</div>
-      <span class="card-link">Read analysis →</span>
+      <a class="card-link" href="${postUrl}">Read analysis →</a>
     </div>
   </div>`;
 }
@@ -430,9 +359,11 @@ function miniCompass(hand){
 function mcHand(pos, h, align){
   const suits = ['S','H','D','C'].map(s => {
     const cards = (h[s]||[]);
+    // Show only first 4 cards + … on mini view
     const shown = cards.length > 5 ? cards.slice(0,4).join(' ')+'…' : cards.join(' ');
     const val = cards.length ? shown : '<span class="mc-void">—</span>';
-    return `<div class="mc-suit ${align}"><span class="mc-sym m${s}">${SYM[s]}</span><span class="m${s}">${val}</span></div>`;
+    const cls = `mc-suit ${align}`;
+    return `<div class="${cls}"><span class="mc-sym m${s}">${SYM[s]}</span><span class="m${s}">${val}</span></div>`;
   }).join('');
   return `<div class="mc-pos">${pos}</div><div class="mc-suits">${suits}</div>`;
 }
@@ -443,24 +374,8 @@ function deletePost(e, id){
   try {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     firebase.database().ref('blog/posts/' + id).remove();
-  } catch(err) { alert('Delete failed: ' + err.message); }
+  } catch(e) { alert('Delete failed: ' + e.message); }
 }
-
-// Event delegation: card navigation + delete button
-document.getElementById('posts').addEventListener('click', function(e){
-  const delBtn = e.target.closest('.card-del');
-  if (delBtn) {
-    deletePost(e, delBtn.dataset.id);
-    return;
-  }
-  const card = e.target.closest('.post-card');
-  if (card && card.dataset.post) {
-    try {
-      const post = JSON.parse(card.dataset.post);
-      window.location = 'blog-reader.html#' + encodeURIComponent(JSON.stringify(post));
-    } catch(err) { alert('Could not open post: ' + err.message); }
-  }
-});
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
