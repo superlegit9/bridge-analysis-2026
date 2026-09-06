@@ -661,6 +661,9 @@ select.edit-field option { background: #1e3a2f; }
       </div>
     </div>
 
+    <!-- List of diagrams already in this post -->
+    <div id="diagListPanel" style="margin-top:6px"></div>
+
     <!-- Insert inline bidding table button -->
     <div style="display:flex;justify-content:flex-end;margin-top:2px">
       <button onclick="openBidWidget()" style="background:none;border:none;font-size:12px;color:var(--ink3);cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif;letter-spacing:.4px;padding:0;transition:color .15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--ink3)'">+ insert bidding table</button>
@@ -704,6 +707,9 @@ select.edit-field option { background: #1e3a2f; }
       </div>
     </div>
 
+    <!-- List of bidding tables already in this post -->
+    <div id="bidListPanel" style="margin-top:6px"></div>
+
     <div class="char-count" id="charCount">0 characters</div>
   </div>
 
@@ -743,6 +749,7 @@ let fbDb = null;
 
 /* ═══════════════════════ STATE ═══════════════════════ */
 const SYM = { S:'♠', H:'♥', D:'♦', C:'♣' };
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 const RANK_ORDER = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
 let currentHand = { N:{S:[],H:[],D:[],C:[]}, E:{S:[],H:[],D:[],C:[]}, S:{S:[],H:[],D:[],C:[]}, W:{S:[],H:[],D:[],C:[]} };
 let currentPlay = [];     // array of card strings from pc| tags
@@ -916,10 +923,12 @@ let editPostId = null;
     // Inline diagrams & bidding tables — restore regardless of hand presence
     if (Array.isArray(data.diagrams))   inlineDiagrams  = data.diagrams;
     if (Array.isArray(data.bidTables))  inlineBiddings  = data.bidTables;
+    renderDiagramList();
+    renderBiddingList();
 
-    // Topbar — this is now a duplicate, not an in-place edit
-    document.getElementById('pubBtn').textContent = 'Publish copy →';
-    document.title = 'Edit Copy — Bridge Analysis';
+    // Topbar — editing this post in place
+    document.getElementById('pubBtn').textContent = 'Save changes →';
+    document.title = 'Edit — Bridge Analysis';
     updateCharCount();
   } catch(e) {
     console.error('Edit mode load failed:', e);
@@ -1159,6 +1168,7 @@ function preview(){
 // diagrams array: [{hand, caption}, ...] — index matches [[diagram:N]] markers
 let inlineDiagrams = [];
 let diagCurrentHand = null;
+let editingDiagIdx = null;
 
 function openDiagWidget(){
   const w = document.getElementById('diagWidget');
@@ -1275,6 +1285,22 @@ function diagHandBlock(pos, h, align){
 function insertDiagram(){
   if (!diagCurrentHand) return;
   const caption = document.getElementById('diagCaption').value.trim();
+
+  if (editingDiagIdx !== null) {
+    // Update existing diagram in place
+    const idx = editingDiagIdx;
+    inlineDiagrams[idx] = { hand: diagCurrentHand, caption };
+    const ta = document.getElementById('proseIn');
+    ta.value = ta.value.replace(
+      new RegExp('\\[\\[diagram:' + idx + '\\]\\][^\\n]*'),
+      `[[diagram:${idx}]]${caption ? ' ' + caption : ''}`
+    );
+    updateCharCount();
+    showStatus(`Diagram ${idx + 1} updated ✓`);
+    cancelDiagramEdit();
+    return;
+  }
+
   const idx = inlineDiagrams.length;
   inlineDiagrams.push({ hand: diagCurrentHand, caption });
 
@@ -1295,6 +1321,75 @@ function insertDiagram(){
   document.getElementById('diagWidget').style.display = 'none';
   setDiagStatus('');
   showStatus(`Diagram ${idx + 1} inserted ✓`);
+  renderDiagramList();
+}
+
+function editDiagramAt(idx){
+  const d = inlineDiagrams[idx];
+  if (!d) return;
+  editingDiagIdx = idx;
+  diagCurrentHand = JSON.parse(JSON.stringify(d.hand || {}));
+  document.getElementById('diagCaption').value = d.caption || '';
+  // Prefill manual tab too, for convenience
+  const positions = {N:'diagManN', E:'diagManE', S:'diagManS', W:'diagManW'};
+  for (const [pos, id] of Object.entries(positions)){
+    const h = diagCurrentHand[pos];
+    document.getElementById(id).value = (h && ['S','H','D','C'].some(s=>(h[s]||[]).length))
+      ? ['S','H','D','C'].map(s => s + (h[s]||[]).join('')).join(' ') : '';
+  }
+  renderDiagCompass();
+  document.getElementById('diagInsertBtn').textContent = 'Update diagram →';
+  openDiagWidget();
+  document.getElementById('diagWidget').style.display = 'block';
+  setDiagStatus(`Editing diagram ${idx + 1}`);
+}
+
+function cancelDiagramEdit(){
+  editingDiagIdx = null;
+  diagCurrentHand = null;
+  document.getElementById('diagPreview').style.display = 'none';
+  document.getElementById('diagCaption').value = '';
+  document.getElementById('diagWidget').style.display = 'none';
+  document.getElementById('diagInsertBtn').textContent = 'Insert at cursor →';
+  setDiagStatus('');
+  renderDiagramList();
+}
+
+function deleteDiagramAt(idx){
+  if (!confirm(`Delete diagram ${idx + 1}? Its marker will be removed from the text.`)) return;
+  inlineDiagrams.splice(idx, 1);
+
+  const ta = document.getElementById('proseIn');
+  let prose = ta.value;
+  // Remove the marker (and its blank-line padding) for the deleted diagram
+  prose = prose.replace(new RegExp('\\n*\\[\\[diagram:' + idx + '\\]\\][^\\n]*\\n*'), '\n\n');
+  // Renumber remaining markers so indices stay contiguous
+  prose = prose.replace(/\[\[diagram:(\d+)\]\]/g, (m, numStr) => {
+    const n = parseInt(numStr, 10);
+    return n > idx ? `[[diagram:${n - 1}]]` : m;
+  });
+  ta.value = prose;
+  updateCharCount();
+
+  if (editingDiagIdx === idx) cancelDiagramEdit();
+  else if (editingDiagIdx !== null && editingDiagIdx > idx) editingDiagIdx--;
+
+  showStatus(`Diagram ${idx + 1} deleted ✓`);
+  renderDiagramList();
+}
+
+function renderDiagramList(){
+  const el = document.getElementById('diagListPanel');
+  if (!el) return;
+  if (!inlineDiagrams.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink3);margin-bottom:4px">Diagrams in this post</div>` +
+    inlineDiagrams.map((d, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.2);border:.5px solid var(--border);border-radius:6px;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--gold);font-family:'JetBrains Mono',monospace">#${i + 1}</span>
+        <span style="font-size:12px;color:var(--cream2);flex:1;font-style:${d.caption ? 'normal' : 'italic'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.caption || 'No caption')}</span>
+        <button onclick="editDiagramAt(${i})" style="background:none;border:.5px solid var(--border2);color:var(--gold);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Edit</button>
+        <button onclick="deleteDiagramAt(${i})" style="background:none;border:.5px solid rgba(176,32,32,.4);color:#e08080;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Delete</button>
+      </div>`).join('');
 }
 
 function setDiagStatus(msg){ document.getElementById('diagStatus').textContent = msg; }
@@ -1336,6 +1431,7 @@ function tbHeading(){
 
 /* ═══════════════════════ INLINE BIDDING TABLES ═══════════════════════ */
 let inlineBiddings = [];
+let editingBidIdx = null;
 const BW_SEATS = ['W','N','E','S'];
 const BW_SYM = { S:'♠', H:'♥', D:'♦', C:'♣' };
 
@@ -1420,6 +1516,21 @@ function insertBiddingTable(){
   if (!raw){ document.getElementById('bidStatus').textContent = 'Enter a bidding sequence first'; return; }
   const bids = parseBidSeq(raw);
   const caption = document.getElementById('bidCaption').value.trim();
+
+  if (editingBidIdx !== null) {
+    const idx = editingBidIdx;
+    inlineBiddings[idx] = { bids, dealer, caption };
+    const ta = document.getElementById('proseIn');
+    ta.value = ta.value.replace(
+      new RegExp('\\[\\[bidding:' + idx + '\\]\\][^\\n]*'),
+      `[[bidding:${idx}]]${caption ? ' ' + caption : ''}`
+    );
+    updateCharCount();
+    showStatus(`Bidding table ${idx + 1} updated ✓`);
+    cancelBiddingEdit();
+    return;
+  }
+
   const idx = inlineBiddings.length;
   inlineBiddings.push({ bids, dealer, caption });
 
@@ -1439,6 +1550,69 @@ function insertBiddingTable(){
   document.getElementById('bidInsertBtn').disabled = true;
   document.getElementById('bidWidget').style.display = 'none';
   showStatus(`Bidding table ${idx + 1} inserted ✓`);
+  renderBiddingList();
+}
+
+function editBiddingAt(idx){
+  const d = inlineBiddings[idx];
+  if (!d) return;
+  editingBidIdx = idx;
+  document.getElementById('bidSeqIn').value = (d.bids || []).join(' ');
+  document.getElementById('bidDealerIn').value = d.dealer || 'S';
+  document.getElementById('bidCaption').value = d.caption || '';
+  previewBidding();
+  document.getElementById('bidCaptionRow').style.display = 'block';
+  document.getElementById('bidInsertBtn').textContent = 'Update table →';
+  openBidWidget();
+  document.getElementById('bidWidget').style.display = 'block';
+  document.getElementById('bidStatus').textContent = `Editing bidding table ${idx + 1}`;
+}
+
+function cancelBiddingEdit(){
+  editingBidIdx = null;
+  document.getElementById('bidSeqIn').value = '';
+  document.getElementById('bidCaption').value = '';
+  document.getElementById('bidPreview').style.display = 'none';
+  document.getElementById('bidInsertBtn').disabled = true;
+  document.getElementById('bidInsertBtn').textContent = 'Insert at cursor →';
+  document.getElementById('bidWidget').style.display = 'none';
+  document.getElementById('bidStatus').textContent = '';
+  renderBiddingList();
+}
+
+function deleteBiddingAt(idx){
+  if (!confirm(`Delete bidding table ${idx + 1}? Its marker will be removed from the text.`)) return;
+  inlineBiddings.splice(idx, 1);
+
+  const ta = document.getElementById('proseIn');
+  let prose = ta.value;
+  prose = prose.replace(new RegExp('\\n*\\[\\[bidding:' + idx + '\\]\\][^\\n]*\\n*'), '\n\n');
+  prose = prose.replace(/\[\[bidding:(\d+)\]\]/g, (m, numStr) => {
+    const n = parseInt(numStr, 10);
+    return n > idx ? `[[bidding:${n - 1}]]` : m;
+  });
+  ta.value = prose;
+  updateCharCount();
+
+  if (editingBidIdx === idx) cancelBiddingEdit();
+  else if (editingBidIdx !== null && editingBidIdx > idx) editingBidIdx--;
+
+  showStatus(`Bidding table ${idx + 1} deleted ✓`);
+  renderBiddingList();
+}
+
+function renderBiddingList(){
+  const el = document.getElementById('bidListPanel');
+  if (!el) return;
+  if (!inlineBiddings.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink3);margin-bottom:4px">Bidding tables in this post</div>` +
+    inlineBiddings.map((d, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.2);border:.5px solid var(--border);border-radius:6px;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--gold);font-family:'JetBrains Mono',monospace">#${i + 1}</span>
+        <span style="font-size:12px;color:var(--cream2);flex:1;font-style:${d.caption ? 'normal' : 'italic'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.caption || 'No caption')}</span>
+        <button onclick="editBiddingAt(${i})" style="background:none;border:.5px solid var(--border2);color:var(--gold);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Edit</button>
+        <button onclick="deleteBiddingAt(${i})" style="background:none;border:.5px solid rgba(176,32,32,.4);color:#e08080;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Delete</button>
+      </div>`).join('');
 }
 
 /* ═══════════════════════ PUBLISH ═══════════════════════ */
