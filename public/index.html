@@ -252,6 +252,480 @@ body {
 <header class="site-header">
   <div class="header-inner">
     <div>
+      <a class="brand" href="index.html">♠ Bridge Analysis</a>
+      <div class="brand-sub">hand records &amp; commentary</div>
+    </div>
+    <a class="new-post-btn" href="blog-post.html">+ New post</a>
+  </div>
+</header>
+
+<div class="hero-rule">
+  <h2>Latest hands</h2>
+</div>
+
+<!-- Filter bar -->
+<div style="max-width:900px;margin:0 auto;padding:20px 24px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <span style="font-size:12px;font-family:'Crimson Pro',serif;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase">Filter</span>
+  <select id="filterGroup" onchange="applyFilters()" style="padding:5px 10px;font-family:'Crimson Pro',serif;font-size:13px;border:.5px solid rgba(26,21,16,.15);border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;outline:none">
+    <option value="">All groups</option>
+    <option>U26</option><option>U21</option><option>WUC</option>
+  </select>
+  <select id="filterTag" onchange="applyFilters()" style="padding:5px 10px;font-family:'Crimson Pro',serif;font-size:13px;border:.5px solid rgba(26,21,16,.15);border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;outline:none">
+    <option value="">All tags</option>
+    <option>bidding</option><option>defence</option><option>declaring</option>
+  </select>
+  <select id="filterAuthor" onchange="applyFilters()" style="padding:5px 10px;font-family:'Crimson Pro',serif;font-size:13px;border:.5px solid rgba(26,21,16,.15);border-radius:5px;background:#fff;color:var(--ink);cursor:pointer;outline:none">
+    <option value="">All authors</option>
+  </select>
+  <button onclick="clearFilters()" style="padding:5px 12px;background:transparent;border:.5px solid rgba(26,21,16,.15);border-radius:5px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--ink3);cursor:pointer">Clear</button>
+  <span id="filterCount" style="font-size:12px;color:var(--ink3);font-style:italic;font-family:'Crimson Pro',serif"></span>
+</div>
+
+<div class="posts-wrap">
+  <div id="posts" class="posts-grid">
+    <div class="loading">Loading posts…</div>
+  </div>
+</div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCem5EbVUeKJUihyEppP1iPEh6aYNNvKhc",
+  authDomain: "coaching-u26.firebaseapp.com",
+  databaseURL: "https://coaching-u26-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "coaching-u26",
+  storageBucket: "coaching-u26.firebasestorage.app",
+  messagingSenderId: "928921692411",
+  appId: "1:928921692411:web:b95f23533ee39461db685e"
+};
+
+const SYM = { S:'♠', H:'♥', D:'♦', C:'♣' };
+const VUL = { '0':'None', 'n':'N/S vul', 'e':'E/W vul', 'b':'Both vul' };
+
+let allPosts = [];
+window._adminMode = window.location.search.includes('admin=1');
+
+document.addEventListener('keydown', function(e){
+  if(e.shiftKey && e.ctrlKey && e.key === 'A'){
+    window._adminMode = !window._adminMode;
+    // Show/hide admin indicator in header
+    let ind = document.getElementById('admin-ind');
+    if(window._adminMode){
+      if(!ind){
+        ind = document.createElement('span');
+        ind.id = 'admin-ind';
+        ind.style.cssText = 'font-size:11px;color:rgba(245,240,232,.45);font-family:"Crimson Pro",serif;font-style:italic;margin-right:12px';
+        ind.textContent = 'admin mode';
+        document.querySelector('.topbar-actions')||document.querySelector('.header-inner').appendChild(ind);
+        document.querySelector('.header-inner').insertBefore(ind, document.querySelector('.new-post-btn'));
+      }
+    } else {
+      if(ind) ind.remove();
+    }
+    applyFilters(); // re-render cards
+  }
+});
+
+(function(){
+  function loadScript(src, cb){
+    const s = document.createElement('script'); s.src = src;
+    s.onload = cb; s.onerror = () => { renderError(); };
+    document.head.appendChild(s);
+  }
+  loadScript('https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js', function(){
+    loadScript('https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js', function(){
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+        const db = firebase.database();
+        db.ref('blog/posts').orderByChild('date').on('value', snap => {
+          const data = snap.val() || {};
+          allPosts = Object.entries(data)
+            .map(([id, p]) => ({...p, _id: id}))
+            .sort((a,b) => new Date(b.date) - new Date(a.date));
+          populateAuthorFilter();
+          applyFilters();
+        });
+      } catch(e) { renderError(); }
+    });
+  });
+})();
+
+function populateAuthorFilter(){
+  const sel = document.getElementById('filterAuthor');
+  const current = sel.value;
+  const authors = [...new Set(allPosts.map(p=>p.author).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All authors</option>' +
+    authors.map(a=>`<option${a===current?' selected':''}>${esc(a)}</option>`).join('');
+}
+
+function applyFilters(){
+  const group = document.getElementById('filterGroup').value;
+  const tag = document.getElementById('filterTag').value;
+  const author = document.getElementById('filterAuthor').value;
+  let filtered = allPosts;
+  if (group) filtered = filtered.filter(p => p.group === group);
+  if (tag)   filtered = filtered.filter(p => (p.tags||[]).includes(tag));
+  if (author) filtered = filtered.filter(p => p.author === author);
+  const total = allPosts.length;
+  const shown = filtered.length;
+  document.getElementById('filterCount').textContent =
+    (group||tag||author) ? `${shown} of ${total} posts` : '';
+  renderPosts(filtered);
+}
+
+function clearFilters(){
+  document.getElementById('filterGroup').value = '';
+  document.getElementById('filterTag').value = '';
+  document.getElementById('filterAuthor').value = '';
+  applyFilters();
+}
+
+function renderPosts(posts){
+  const el = document.getElementById('posts');
+  if (!posts.length){
+    el.innerHTML = allPosts.length
+      ? `<div class="empty-state"><h3>No posts match</h3><p>Try clearing the filters.</p></div>`
+      : `<div class="empty-state"><h3>No posts yet</h3><p>Click <em>+ New post</em> to publish your first hand analysis.</p></div>`;
+    return;
+  }
+  el.innerHTML = posts.map(p => postCard(p)).join('');
+}
+
+function postCard(post){
+  const dateStr = new Date(post.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const contractStr = post.contract ? post.contract + (post.declarer?' by '+post.declarer:'') : '';
+  // Store JSON in data attribute - avoids quote-escaping bugs in onclick strings
+  const postJson = JSON.stringify(post).replace(/'/g, '&#39;');
+  const groupBadge = post.group
+    ? `<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(200,169,74,.15);color:#8a4a00;font-family:'Crimson Pro',serif;letter-spacing:.5px;border:.5px solid rgba(200,169,74,.3)">${esc(post.group)}</span>`
+    : '';
+
+  return `<div class="post-card" data-post='${postJson}'>
+    <div class="card-diagram">${miniCompass(post.hand)}</div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span>${dateStr}</span>
+        ${post.author ? `<span>·</span><span>${esc(post.author)}</span>` : ''}
+        ${groupBadge}
+        ${window._adminMode ? `<button class="card-del" data-id="${esc(post._id)}">delete</button>` : ''}
+      </div>
+      <div class="card-title">${esc(post.title)}</div>
+      ${(post.tags||[]).length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${(post.tags||[]).map(t=>`<span style="font-size:11px;padding:2px 9px;border-radius:10px;background:#e8f0e8;color:#3a6b3a;font-family:'Crimson Pro',serif;letter-spacing:.4px">${t}</span>`).join('')}</div>` : ''}
+      <div class="card-excerpt">${esc(post.excerpt||'')}</div>
+      <span class="card-link">Read analysis →</span>
+    </div>
+  </div>`;
+}
+
+function miniCompass(hand){
+  if (!hand) return '';
+  return `<div class="mini-compass">
+    <div class="mc-N">${mcHand('N', hand.N||{}, 'center')}</div>
+    <div class="mc-W">${mcHand('W', hand.W||{}, 'right')}</div>
+    <div class="mc-ctr"><div class="mc-rose">N<br>W·E<br>S</div></div>
+    <div class="mc-E">${mcHand('E', hand.E||{}, 'left')}</div>
+    <div class="mc-S">${mcHand('S', hand.S||{}, 'center')}</div>
+  </div>`;
+}
+
+function mcHand(pos, h, align){
+  const suits = ['S','H','D','C'].map(s => {
+    const cards = (h[s]||[]);
+    const shown = cards.length > 5 ? cards.slice(0,4).join(' ')+'…' : cards.join(' ');
+    const val = cards.length ? shown : '<span class="mc-void">—</span>';
+    return `<div class="mc-suit ${align}"><span class="mc-sym m${s}">${SYM[s]}</span><span class="m${s}">${val}</span></div>`;
+  }).join('');
+  return `<div class="mc-pos">${pos}</div><div class="mc-suits">${suits}</div>`;
+}
+
+function deletePost(e, id){
+  e.stopPropagation();
+  if (!confirm('Delete this post?')) return;
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.database().ref('blog/posts/' + id).remove();
+  } catch(err) { alert('Delete failed: ' + err.message); }
+}
+
+// Event delegation: card navigation + delete button
+document.getElementById('posts').addEventListener('click', function(e){
+  const delBtn = e.target.closest('.card-del');
+  if (delBtn) {
+    deletePost(e, delBtn.dataset.id);
+    return;
+  }
+  const card = e.target.closest('.post-card');
+  if (card && card.dataset.post) {
+    try {
+      const post = JSON.parse(card.dataset.post);
+      window.location = 'blog-reader.html?id=' + encodeURIComponent(post._id);
+    } catch(err) { alert('Could not open post: ' + err.message); }
+  }
+});
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderError(){
+  document.getElementById('posts').innerHTML = `<div class="empty-state">
+    <h3>Could not connect</h3>
+    <p>Check your internet connection and try refreshing.</p>
+  </div>`;
+}
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge Analysis</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --felt: #1e3a2f;
+  --felt2: #162b23;
+  --cream: #f5f0e8;
+  --cream2: #ede6d6;
+  --ink: #1a1510;
+  --ink2: #4a4035;
+  --ink3: #8a7d6a;
+  --gold: #c8a94a;
+  --gold2: #e8c96a;
+  --border: rgba(200,169,74,0.18);
+  --border2: rgba(200,169,74,0.4);
+  --r: 6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Crimson Pro', Georgia, serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* Header */
+.site-header {
+  background: var(--felt);
+  border-bottom: .5px solid var(--border2);
+  padding: 0 40px;
+}
+
+.header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 62px;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: 2.5px;
+  color: var(--gold2);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.brand-sub {
+  font-size: 12px;
+  color: rgba(245,240,232,.35);
+  letter-spacing: 1px;
+  font-style: italic;
+  margin-top: 1px;
+}
+
+.new-post-btn {
+  padding: 8px 20px;
+  background: var(--gold);
+  color: var(--felt2);
+  border: none;
+  border-radius: var(--r);
+  font-family: 'Crimson Pro', serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: .5px;
+  text-decoration: none;
+  display: inline-block;
+  transition: background .15s;
+}
+.new-post-btn:hover { background: var(--gold2); }
+
+/* Hero rule */
+.hero-rule {
+  background: var(--felt);
+  padding: 28px 40px 32px;
+  text-align: center;
+  border-bottom: .5px solid var(--border2);
+}
+
+.hero-rule h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(245,240,232,.4);
+  font-weight: 300;
+}
+
+/* Posts grid */
+.posts-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 28px;
+}
+
+/* Post card */
+.post-card {
+  background: #fff;
+  border: .5px solid rgba(26,21,16,.12);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow .2s, transform .2s;
+  cursor: pointer;
+}
+
+.post-card:hover {
+  box-shadow: 0 8px 32px rgba(26,21,16,.12);
+  transform: translateY(-2px);
+}
+
+/* Mini compass on card */
+.card-diagram {
+  background: var(--felt);
+  padding: 16px;
+  flex-shrink: 0;
+}
+
+.mini-compass {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.mc-N { grid-column:2; grid-row:1; text-align:center; }
+.mc-W { grid-column:1; grid-row:2; text-align:right; }
+.mc-ctr { grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:center; }
+.mc-E { grid-column:3; grid-row:2; }
+.mc-S { grid-column:2; grid-row:3; text-align:center; }
+
+.mc-rose {
+  width: 28px; height: 28px;
+  border: .5px solid rgba(200,169,74,.35);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 6px; color: rgba(245,240,232,.4);
+  line-height: 1.3; text-align: center;
+  font-family: 'Crimson Pro', serif;
+}
+
+.mc-pos { font-size: 7px; text-transform: uppercase; letter-spacing: .8px; color: var(--gold); margin-bottom: 1px; font-family: 'Crimson Pro', serif; }
+.mc-suits { line-height: 1.65; }
+.mc-suit { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.mc-suit.right { justify-content: flex-end; }
+.mc-suit.center { justify-content: center; }
+.mc-sym { width: 9px; flex-shrink: 0; font-size: 9px; }
+.mS,.mC { color: #f5f0e8; }
+.mH,.mD { color: #e06060; }
+.mc-void { color: rgba(245,240,232,.25); }
+
+/* Card body */
+.card-body { padding: 16px 18px 18px; flex: 1; display: flex; flex-direction: column; }
+
+.card-meta {
+  font-size: 11px;
+  color: var(--ink3);
+  font-style: italic;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink);
+  margin-bottom: 8px;
+  letter-spacing: -.2px;
+}
+
+.card-excerpt {
+  font-size: 14px;
+  color: var(--ink2);
+  line-height: 1.65;
+  flex: 1;
+  margin-bottom: 14px;
+}
+
+.card-link {
+  font-size: 13px;
+  color: var(--gold);
+  font-style: italic;
+  letter-spacing: .3px;
+  text-decoration: none;
+  align-self: flex-start;
+  border-bottom: .5px solid transparent;
+  transition: border-color .15s;
+}
+.card-link:hover { border-bottom-color: var(--gold); }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
+  color: var(--ink3);
+}
+
+.empty-state h3 { font-size: 22px; font-weight: 300; margin-bottom: 10px; }
+.empty-state p { font-size: 16px; font-style: italic; }
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 60px;
+  font-style: italic;
+  color: var(--ink3);
+  font-size: 17px;
+}
+
+/* Delete button (admin) */
+.card-del {
+  background: none;
+  border: none;
+  color: rgba(176,32,32,.4);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Crimson Pro', serif;
+  padding: 0;
+  margin-left: auto;
+  transition: color .15s;
+}
+.card-del:hover { color: #b02020; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div>
       <a class="brand" href="blog-index.html">♠ Bridge Analysis</a>
       <div class="brand-sub">hand records &amp; commentary</div>
     </div>
