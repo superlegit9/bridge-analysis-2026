@@ -527,11 +527,7 @@ document.addEventListener('keydown', function(e){
 
 function editPost(){
   if(!_currentPost)return;
-  // Duplicate: strip _id so blog-post treats it as a new post
-  // The original stays in Firebase; you can delete it manually afterwards
-  const copy = Object.assign({}, _currentPost);
-  delete copy._id;
-  const data = encodeURIComponent(JSON.stringify(copy));
+  const data = encodeURIComponent(JSON.stringify(_currentPost));
   window.location = 'blog-post.html#' + data;
 }
 
