@@ -1396,14 +1396,13 @@ function renderDiagramList(){
   const el = document.getElementById('diagListPanel');
   if (!el) return;
   if (!inlineDiagrams.length){ el.innerHTML = ''; return; }
-  const isAdmin = !!window._adminMode;
   el.innerHTML = `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink3);margin-bottom:4px">Diagrams in this post</div>` +
     inlineDiagrams.map((d, i) => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.2);border:.5px solid var(--border);border-radius:6px;margin-bottom:4px">
         <span style="font-size:12px;color:var(--gold);font-family:'JetBrains Mono',monospace">#${i + 1}</span>
         <span style="font-size:12px;color:var(--cream2);flex:1;font-style:${d.caption ? 'normal' : 'italic'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.caption || 'No caption')}</span>
-        ${isAdmin ? `<button onclick="editDiagramAt(${i})" style="background:none;border:.5px solid var(--border2);color:var(--gold);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Edit</button>
-        <button onclick="deleteDiagramAt(${i})" style="background:none;border:.5px solid rgba(176,32,32,.4);color:#e08080;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Delete</button>` : ''}
+        <button onclick="editDiagramAt(${i})" style="background:none;border:.5px solid var(--border2);color:var(--gold);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Edit</button>
+        <button onclick="deleteDiagramAt(${i})" style="background:none;border:.5px solid rgba(176,32,32,.4);color:#e08080;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Delete</button>
       </div>`).join('');
 }
 
@@ -1618,14 +1617,13 @@ function renderBiddingList(){
   const el = document.getElementById('bidListPanel');
   if (!el) return;
   if (!inlineBiddings.length){ el.innerHTML = ''; return; }
-  const isAdmin = !!window._adminMode;
   el.innerHTML = `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink3);margin-bottom:4px">Bidding tables in this post</div>` +
     inlineBiddings.map((d, i) => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.2);border:.5px solid var(--border);border-radius:6px;margin-bottom:4px">
         <span style="font-size:12px;color:var(--gold);font-family:'JetBrains Mono',monospace">#${i + 1}</span>
         <span style="font-size:12px;color:var(--cream2);flex:1;font-style:${d.caption ? 'normal' : 'italic'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.caption || 'No caption')}</span>
-        ${isAdmin ? `<button onclick="editBiddingAt(${i})" style="background:none;border:.5px solid var(--border2);color:var(--gold);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Edit</button>
-        <button onclick="deleteBiddingAt(${i})" style="background:none;border:.5px solid rgba(176,32,32,.4);color:#e08080;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Delete</button>` : ''}
+        <button onclick="editBiddingAt(${i})" style="background:none;border:.5px solid var(--border2);color:var(--gold);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Edit</button>
+        <button onclick="deleteBiddingAt(${i})" style="background:none;border:.5px solid rgba(176,32,32,.4);color:#e08080;font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif">Delete</button>
       </div>`).join('');
 }
 
@@ -1779,4 +1777,4 @@ ${post.preview?'<div class="preview-banner">PREVIEW — not published</div>':''}
 }
 </script>
 </body>
-</html>
+</html>clickho
