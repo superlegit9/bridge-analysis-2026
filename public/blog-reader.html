@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bridge Analysis</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
-/* Aptos system font stack */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--felt:#1e3a2f;--felt2:#162b23;--cream:#f5f0e8;--ink:#1a1510;--ink2:#4a4035;--ink3:#8a7d6a;--gold:#c8a94a;--gold2:#e8c96a;--border2:rgba(200,169,74,0.4);--r:6px}
-body{font-family:'Aptos','Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--ink);line-height:1.7;padding:0 0 80px}
+:root{--felt:#1e3a2f;--felt2:#162b23;--cream:#f5f0e8;--ink:#1a1510;--ink2:#4a4035;--ink3:#8a7d6a;--gold:#c8a94a;--gold2:#e8c96a;--border2:rgba(200,169,74,0.4)}
+body{font-family:'Crimson Pro',Georgia,serif;background:var(--cream);color:var(--ink);line-height:1.7;padding:0 0 80px}
 
 .topbar{background:var(--felt);border-bottom:.5px solid var(--border2);padding:0 32px;display:flex;align-items:center;height:50px}
 .brand{color:var(--gold2);font-size:18px;font-weight:300;letter-spacing:2px;text-transform:uppercase;text-decoration:none}
@@ -19,281 +18,69 @@ body{font-family:'Aptos','Segoe UI',system-ui,sans-serif;background:var(--cream)
 .wrap{max-width:680px;margin:0 auto;padding:52px 24px}
 h1{font-size:38px;font-weight:300;letter-spacing:-.5px;line-height:1.2;margin-bottom:12px}
 
-.meta{font-size:14px;color:var(--ink3);font-style:italic;margin-bottom:28px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-bottom:20px;border-bottom:.5px solid rgba(26,21,16,.1)}
+.meta{font-size:14px;color:var(--ink3);font-style:italic;margin-bottom:40px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-bottom:20px;border-bottom:.5px solid rgba(26,21,16,.1)}
 .meta-sep{color:var(--gold)}
 
-/* Static diagram */
-.diagram{background:var(--felt);border-radius:12px;padding:22px;margin:0 0 16px;display:inline-grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;gap:6px 14px}
+/* Diagram */
+.diagram{background:var(--felt);border-radius:12px;padding:22px;margin:0 0 40px;display:inline-grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;gap:6px 14px}
 .hand-N{grid-column:2;grid-row:1;text-align:center}
 .hand-W{grid-column:1;grid-row:2;text-align:right}
 .hand-ctr{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center}
 .hand-E{grid-column:3;grid-row:2}
 .hand-S{grid-column:2;grid-row:3;text-align:center}
-.ctr-rose{width:46px;height:46px;border:.5px solid rgba(200,169,74,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(245,240,232,.4);font-family:'Aptos','Segoe UI',system-ui,sans-serif;line-height:1.4;text-align:center}
+.ctr-rose{width:46px;height:46px;border:.5px solid rgba(200,169,74,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(245,240,232,.4);font-family:'Crimson Pro',serif;line-height:1.4;text-align:center}
 .pos-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:3px;font-family:'Crimson Pro',serif}
 .hand-suits{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8}
 .suit-row{display:flex;align-items:center;gap:5px;white-space:nowrap}
 .suit-row.right{justify-content:flex-end}
 .suit-row.center{justify-content:center}
-.sym{display:inline-block;width:1.1em;flex-shrink:0;text-align:center}
+.sym{width:13px;flex-shrink:0}
 .S,.C{color:#f5f0e8}.H,.D{color:#e06060}
-.void-card{color:rgba(245,240,232,.25);font-style:italic}
-
-/* Viewer tabs */
-.play-section{margin:0 0 36px}
-.play-tabs{display:flex;border-bottom:.5px solid rgba(200,169,74,.2)}
-.play-tab{padding:7px 16px;font-family:'Aptos','Segoe UI',system-ui,sans-serif;font-size:13px;letter-spacing:.5px;color:rgba(245,240,232,.45);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
-.play-tab.on{color:var(--gold2);border-bottom-color:var(--gold)}
-.play-tab-panel{display:none}
-.play-tab-panel.on{display:block}
-
-/* Play viewer */
-.pv-wrap{background:var(--felt);border-radius:0 0 12px 12px;padding:14px}
-.pv-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-bottom:12px;border-bottom:.5px solid rgba(200,169,74,.12);margin-bottom:12px}
-.pv-btn{padding:4px 12px;font-size:12px;font-family:'Aptos','Segoe UI',system-ui,sans-serif;background:rgba(0,0,0,.25);color:rgba(245,240,232,.7);border:.5px solid rgba(200,169,74,.2);border-radius:var(--r);cursor:pointer;transition:all .15s;user-select:none}
-.pv-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold2)}
-.pv-btn:disabled{opacity:.25;cursor:not-allowed}
-.pv-status{margin-left:auto;font-size:11px;color:rgba(245,240,232,.35);font-family:'JetBrains Mono',monospace;text-align:right}
-
-.pv-table{display:grid;grid-template-columns:1fr 160px 1fr;grid-template-rows:auto auto auto;gap:8px;background:var(--felt2);border-radius:8px;padding:12px}
-.pv-hand-N{grid-column:2;grid-row:1;display:flex;flex-direction:column;align-items:center}
-.pv-hand-W{grid-column:1;grid-row:2;display:flex;flex-direction:column;align-items:flex-end;justify-content:center}
-.pv-felt{grid-column:2;grid-row:2;position:relative;min-height:120px;display:grid;grid-template-columns:38px 1fr 38px;grid-template-rows:38px 1fr 38px;gap:2px}
-.pv-hand-E{grid-column:3;grid-row:2;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
-.pv-hand-S{grid-column:2;grid-row:3;display:flex;flex-direction:column;align-items:center}
-
-.pv-seat-lbl{font-size:9px;font-family:'Aptos','Segoe UI',system-ui,sans-serif;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;text-align:center}
-.pv-suit-row{display:flex;align-items:center;gap:3px;font-size:11px;font-family:'JetBrains Mono',monospace;line-height:1.7;white-space:nowrap}
-.pv-hand-W .pv-suit-row{justify-content:flex-end}
-.pv-hand-N .pv-suit-row,.pv-hand-S .pv-suit-row{justify-content:center}
-.pv-lbl{display:inline-block;width:1.1em;flex-shrink:0;font-size:11px;text-align:center}
-.pv-card.played{opacity:.18;text-decoration:line-through}
-.pv-card.cur-card{color:#ffd700;font-weight:700}
-.pS,.pC{color:#f5f0e8}.pH,.pD{color:#e06060}
-
-.felt-N{grid-column:2;grid-row:1;display:flex;align-items:flex-end;justify-content:center}
-.felt-W{grid-column:1;grid-row:2;display:flex;align-items:center;justify-content:flex-end}
-.felt-E{grid-column:3;grid-row:2;display:flex;align-items:center;justify-content:flex-start}
-.felt-S{grid-column:2;grid-row:3;display:flex;align-items:flex-start;justify-content:center}
-.felt-ctr{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,.28);font-family:'Aptos','Segoe UI',system-ui,sans-serif;text-align:center;line-height:1.5}
-
-.felt-card{background:#fff;border-radius:4px;padding:2px 6px;font-size:13px;font-weight:600;border:2px solid transparent;box-shadow:0 2px 8px rgba(0,0,0,.4);line-height:1.3;font-family:'JetBrains Mono',monospace}
-.felt-card.lead{border-color:#ffd700}
-.felt-card.empty{background:rgba(255,255,255,.08);box-shadow:none;border:1px dashed rgba(255,255,255,.15);min-width:32px;min-height:26px}
-.fS,.fC{color:#111}.fH,.fD{color:#b02020}
-
-.pv-tricklog{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
-.tl-t{font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:3px;background:rgba(0,0,0,.2);color:rgba(245,240,232,.25);border:.5px solid rgba(200,169,74,.08)}
-.tl-t.done{background:rgba(200,169,74,.14);color:var(--gold);border-color:rgba(200,169,74,.28)}
-.tl-t.cur{background:rgba(0,0,0,.15);border-color:rgba(200,169,74,.2);color:rgba(245,240,232,.55)}
-
-/* Bidding table */
-.bid-wrap{background:var(--felt);border-radius:0 0 12px 12px;padding:14px}
-.btbl{width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace}
-.btbl th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);padding:2px 8px 6px;font-weight:400;text-align:center;border-bottom:.5px solid rgba(200,169,74,.2);font-family:'Crimson Pro',serif}
-.btbl td{padding:3px 8px;text-align:center;min-width:40px;color:#f5f0e8}
-.btbl tr:not(:last-child) td{border-bottom:.5px dotted rgba(200,169,74,.08)}
-.bid-pass{color:rgba(245,240,232,.32)}.bid-dbl{color:#e06060;font-weight:700}
-.bid-S,.bid-C{color:#f5f0e8}.bid-H,.bid-D{color:#e06060}
+.void{color:rgba(245,240,232,.25);font-style:italic}
 
 /* Prose */
-.prose{font-size:20px;line-height:1.9;color:var(--ink);margin-top:36px}
+.prose{font-size:20px;line-height:1.9;color:var(--ink)}
 .prose p{margin-bottom:1.3em}
 .prose strong{font-weight:600}
 .prose em{font-style:italic}
 
-.bbo-link{display:inline-block;margin-top:32px;padding:9px 20px;border:.5px solid var(--gold);border-radius:5px;color:#8a4a00;font-size:14px;text-decoration:none;font-family:'Aptos','Segoe UI',system-ui,sans-serif;letter-spacing:.3px;transition:background .15s,color .15s}
+.bbo-link{display:inline-block;margin-top:32px;padding:9px 20px;border:.5px solid var(--gold);border-radius:5px;color:#8a4a00;font-size:14px;text-decoration:none;font-family:'Crimson Pro',serif;letter-spacing:.3px;transition:background .15s,color .15s}
 .bbo-link:hover{background:var(--gold);color:var(--felt2)}
 </style>
 </head>
 <body>
-<div class="topbar" style="justify-content:space-between">
-  <a class="brand" href="index.html">♠ Bridge Analysis</a>
-  <div style="display:flex;align-items:center;gap:10px">
-    <a class="back" href="index.html" style="margin-left:0">← All posts</a>
-    <button id="editBtn" onclick="editPost()" style="display:none;padding:5px 14px;background:transparent;border:.5px solid rgba(200,169,74,.5);border-radius:5px;color:var(--gold);font-size:13px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif;transition:all .15s" onmouseover="this.style.background='rgba(200,169,74,.12)'" onmouseout="this.style.background='transparent'">✏️ Edit</button>
-    <button id="deleteBtn" onclick="deletePost()" style="display:none;padding:5px 14px;background:transparent;border:.5px solid rgba(176,32,32,.35);border-radius:5px;color:#b02020;font-size:13px;cursor:pointer;font-family:'Aptos','Segoe UI',system-ui,sans-serif;transition:all .15s" onmouseover="this.style.background='rgba(176,32,32,.08)'" onmouseout="this.style.background='transparent'">🗑</button>
-  </div>
+<div class="topbar">
+  <a class="brand" href="blog-index.html">♠ Bridge Analysis</a>
+  <a class="back" href="blog-index.html">← All posts</a>
 </div>
 <div class="wrap" id="wrap">
   <p style="color:var(--ink3);font-style:italic;padding-top:40px">Loading…</p>
 </div>
 <script>
+/* ═══════════════════════ FIREBASE ═══════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCem5EbVUeKJUihyEppP1iPEh6aYNNvKhc",
+  authDomain: "coaching-u26.firebaseapp.com",
+  databaseURL: "https://coaching-u26-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "coaching-u26",
+  storageBucket: "coaching-u26.firebasestorage.app",
+  messagingSenderId: "928921692411",
+  appId: "1:928921692411:web:b95f23533ee39461db685e"
+};
+
 const SYM={S:'♠',H:'♥',D:'♦',C:'♣'};
 const VUL={'0':'None','n':'N/S vul','e':'E/W vul','b':'Both vul'};
-const RANK_ORDER=['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
-const BID_SEATS=['W','N','E','S'];
-const ALL_POS=['N','E','S','W'];
-
-let VS=null;
-const autoTimers={};
-let _currentPost=null;
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function rankVal(r){const i=RANK_ORDER.indexOf(r);return i===-1?99:i;}
 
 function hb(pos,h,align){
   const hand=h||{S:[],H:[],D:[],C:[]};
   const suits=['S','H','D','C'].map(s=>{
     const cards=hand[s]||[];
-    const val=cards.length?cards.join(' '):'<span class="void-card">—</span>';
+    const val=cards.length?cards.join(' '):'<span class="void">—</span>';
     return`<div class="suit-row ${align}"><span class="sym ${s}">${SYM[s]}</span><span class="${s}">${val}</span></div>`;
   }).join('');
   return`<div class="pos-lbl">${pos}</div><div class="hand-suits">${suits}</div>`;
-}
-
-function ch(card){
-  if(!card)return'';
-  const s=card[0].toUpperCase();
-  const r=card.slice(1).replace('T','10');
-  return`<span class="f${s}">${SYM[s]}${r}</span>`;
-}
-
-function bh(b){
-  if(!b)return'';
-  const bl=b.toLowerCase().trim();
-  if(bl==='p'||bl==='pass')return`<span class="bid-pass">p</span>`;
-  if(bl==='xx'||bl==='r')return`<span class="bid-dbl">XX</span>`;
-  if(bl==='x'||bl==='d')return`<span class="bid-dbl">X</span>`;
-  const m=b.match(/^(\d)([NSHDC])(x{0,2}|d|r)?$/i);
-  if(!m)return esc(b);
-  const su=m[2].toUpperCase();
-  const dbl=(m[3]||'').toLowerCase();
-  const dblH=dbl==='xx'||dbl==='r'?'<span class="bid-dbl">XX</span>':dbl==='x'||dbl==='d'?'<span class="bid-dbl">X</span>':'';
-  const sH=su==='N'?'NT':`<span class="bid-${su}">${SYM[su]}</span>`;
-  return`${m[1]}${sH}${dblH}`;
-}
-
-/* Play engine */
-function buildOwnerMap(hands){
-  const map={};
-  for(const pos of ALL_POS){const h=hands[pos];if(!h)continue;for(const s of['S','H','D','C'])for(const r of(h[s]||[]))map[s+r]=pos;}
-  return map;
-}
-function cardKey(c){if(!c)return'';return c[0].toUpperCase()+c.slice(1).replace('T','10');}
-function stepInfo(s){return{trickIdx:Math.floor(s/5),inTrick:s%5,cardsDealt:Math.floor(s/5)*4+Math.min(s%5,4)};}
-function maxStep(play){const n=Math.floor((play||[]).length/4);return n>0?n*5-1:0;}
-
-function initViewer(post){
-  const play=post.play||[];
-  if(!play.length)return false;
-  const ownerMap=buildOwnerMap(post.hand||{});
-  VS={seg:post,step:0,owners:play.map(c=>ownerMap[cardKey(c)]||null)};
-  return true;
-}
-
-function renderPV(){
-  if(!VS)return'<p style="color:rgba(245,240,232,.35);font-style:italic;padding:16px">No play data.</p>';
-  const{seg,step,owners}=VS;
-  const play=seg.play||[];
-  if(!play.length)return'<p style="color:rgba(245,240,232,.35);font-style:italic;padding:16px">No play recorded.</p>';
-  const{trickIdx,inTrick,cardsDealt}=stepInfo(step);
-  const numTricks=Math.floor(play.length/4);
-  const mx=maxStep(play);
-  const atEnd=step>=mx,atStart=step===0;
-
-  const playedSet={};
-  for(const p of ALL_POS)playedSet[p]=new Set();
-  for(let i=0;i<cardsDealt&&i<play.length;i++){const p=owners[i];if(p)playedSet[p].add(cardKey(play[i]));}
-
-  const felt={};for(const p of ALL_POS)felt[p]=null;
-  let lead=null;
-  if(inTrick>0){const ts=trickIdx*4;for(let i=0;i<inTrick;i++){const ci=ts+i;if(ci>=play.length)break;const p=owners[ci];if(p){felt[p]=play[ci];if(i===0)lead=p;}}}
-
-  function handBlk(pos,align){
-    const h=(seg.hand||{})[pos];
-    if(!h||['S','H','D','C'].every(s=>!h[s]||!h[s].length))return`<div style="font-size:10px;color:rgba(255,255,255,.18);font-style:italic">—</div>`;
-    const played=playedSet[pos];
-    return['S','H','D','C'].map(suit=>{
-      const cards=h[suit]||[];
-      if(!cards.length)return`<div class="pv-suit-row"><span class="pv-lbl p${suit}">${SYM[suit]}</span><span style="color:rgba(255,255,255,.18)">—</span></div>`;
-      const spans=cards.map(r=>{
-        const gone=played.has(suit+r);
-        const isCur=felt[pos]&&felt[pos][0].toUpperCase()===suit&&felt[pos].slice(1).replace('T','10')===r;
-        return`<span class="pv-card${isCur?' cur-card':gone?' played':''} p${suit}">${r}</span>`;
-      }).join(' ');
-      return`<div class="pv-suit-row"><span class="pv-lbl p${suit}">${SYM[suit]}</span>${spans}</div>`;
-    }).join('');
-  }
-
-  function feltCard(pos){
-    const card=felt[pos];
-    if(!card)return`<div class="felt-card empty"></div>`;
-    return`<div class="felt-card${pos===lead?' lead':''}">${ch(card)}</div>`;
-  }
-
-  const dots=Array.from({length:numTricks},(_,i)=>`<div class="tl-t ${i<trickIdx?'done':i===trickIdx?'cur':''}">${i+1}</div>`).join('');
-  const status=atEnd?`All ${numTricks} tricks played`:`Trick ${trickIdx+1}/${numTricks} · card ${inTrick}/4`;
-  const ctr=seg.contract&&seg.declarer?`<div>${esc(seg.contract)}</div><div style="opacity:.7">${esc(seg.declarer)}</div>`:'';
-
-  return`<div class="pv-wrap">
-    <div class="pv-controls">
-      <button class="pv-btn" onclick="pvTrick(-1)" ${atStart?'disabled':''}>⏮ Trick</button>
-      <button class="pv-btn" onclick="pvStep(-1)" ${atStart?'disabled':''}>◀</button>
-      <button class="pv-btn" onclick="pvStep(1)" ${atEnd?'disabled':''}>▶</button>
-      <button class="pv-btn" onclick="pvTrick(1)" ${atEnd?'disabled':''}>Trick ⏭</button>
-      <button class="pv-btn" onclick="pvGo(0)">⏪</button>
-      <button class="pv-btn" onclick="pvGo(${mx})">⏩</button>
-      <button class="pv-btn" onclick="pvAuto()">${autoTimers.m?'⏸ Stop':'▶▶ Auto'}</button>
-      <div class="pv-status">${status}</div>
-    </div>
-    <div class="pv-table">
-      <div class="pv-hand-N"><div class="pv-seat-lbl">N</div>${handBlk('N','center')}</div>
-      <div class="pv-hand-W"><div class="pv-seat-lbl" style="text-align:right">W</div>${handBlk('W','right')}</div>
-      <div class="pv-felt">
-        <div class="felt-N">${feltCard('N')}</div>
-        <div class="felt-W">${feltCard('W')}</div>
-        <div class="felt-ctr">${ctr}</div>
-        <div class="felt-E">${feltCard('E')}</div>
-        <div class="felt-S">${feltCard('S')}</div>
-      </div>
-      <div class="pv-hand-E"><div class="pv-seat-lbl">E</div>${handBlk('E','left')}</div>
-      <div class="pv-hand-S">${handBlk('S','center')}<div class="pv-seat-lbl" style="margin-top:4px">S</div></div>
-    </div>
-    <div class="pv-tricklog">${dots}</div>
-  </div>`;
-}
-
-function pvRefresh(){const el=document.getElementById('pv-root');if(el)el.innerHTML=renderPV();}
-function pvStep(d){if(!VS)return;pvStopAuto();VS.step=Math.max(0,Math.min(maxStep(VS.seg.play||[]),VS.step+d));pvRefresh();}
-function pvGo(p){if(!VS)return;pvStopAuto();VS.step=p;pvRefresh();}
-function pvTrick(dir){
-  if(!VS)return;pvStopAuto();
-  const mx=maxStep(VS.seg.play||[]);
-  const nt=Math.floor((VS.seg.play||[]).length/4);
-  const{trickIdx}=stepInfo(VS.step);
-  let ns=dir>0?(VS.step<trickIdx*5+4?trickIdx*5+4:Math.min(nt-1,trickIdx+1)*5+4):(trickIdx<1?0:(trickIdx-1)*5+4);
-  VS.step=Math.max(0,Math.min(mx,ns));pvRefresh();
-}
-function pvStopAuto(){if(autoTimers.m){clearInterval(autoTimers.m);delete autoTimers.m;}}
-function pvAuto(){
-  if(autoTimers.m){pvStopAuto();return;}
-  autoTimers.m=setInterval(()=>{
-    if(!VS){pvStopAuto();return;}
-    const mx=maxStep(VS.seg.play||[]);
-    if(VS.step>=mx){pvStopAuto();return;}
-    VS.step++;pvRefresh();
-  },800);
-}
-
-function renderBidding(bids,dealer){
-  if(!bids||!bids.length)return'<p style="color:rgba(245,240,232,.32);font-style:italic;padding:16px">No bidding recorded.</p>';
-  const di=BID_SEATS.indexOf(dealer);if(di<0)return'';
-  let html=`<div class="bid-wrap"><table class="btbl"><tr>`;
-  for(const s of BID_SEATS)html+=`<th>${s}</th>`;
-  html+='</tr><tr>';
-  for(let i=0;i<di;i++)html+='<td></td>';
-  let col=di;
-  for(let i=0;i<bids.length;i++){if(col>0&&col%4===0)html+='</tr><tr>';html+=`<td>${bh(bids[i])}</td>`;col++;}
-  while(col%4){html+='<td></td>';col++;}
-  return html+'</tr></table></div>';
-}
-
-function switchPlayTab(name,btn){
-  document.querySelectorAll('.play-tab').forEach(t=>t.classList.remove('on'));
-  btn.classList.add('on');
-  document.querySelectorAll('.play-tab-panel').forEach(p=>p.classList.remove('on'));
-  const el=document.getElementById('ptp-'+name);if(el)el.classList.add('on');
 }
 
 function render(post){
@@ -302,143 +89,21 @@ function render(post){
   const vulStr=VUL[post.vul]||'';
   const bboUrl='https://www.bridgebase.com/tools/handviewer.html?lin='+encodeURIComponent(post.lin||'');
 
-  const hasPlay=post.play&&post.play.length>0;
-  const hasBid=post.bidding&&post.bidding.length>0;
-
-  const diagrams = post.diagrams || [];
-  const bidTables = post.bidTables || [];
-
-  function buildInlineDiagram(idx, captionFromMarker) {
-    const d = diagrams[idx];
-    if (!d) return `<em style="color:#8a7d6a">[diagram ${idx+1} not found]</em>`;
-    const caption = d.caption || captionFromMarker || '';
-    const h = d.hand || {};
-    function hasCards(hand){ return hand && ['S','H','D','C'].some(s=>(hand[s]||[]).length>0); }
-    function dHand(pos, hand, align){
-      if (!hasCards(hand)) return '';
-      const suits = ['S','H','D','C'].map(s => {
-        const cards = (hand&&hand[s])||[];
-        const isRed = s==='H'||s==='D';
-        const col = isRed ? '#b02020' : '#1a1510';
-        const val = cards.length ? cards.join(' ') : '<span style="color:#ccc;font-style:italic">\u2014</span>';
-        const justify = align==='right' ? 'flex-end' : align==='center' ? 'center' : 'flex-start';
-        return '<div style="display:flex;align-items:baseline;gap:8px;justify-content:'+justify+';white-space:nowrap;font-family:\'Crimson Pro\',Georgia,serif;font-size:16px;line-height:2">'
-          +'<span style="color:'+col+';width:18px;flex-shrink:0;font-size:17px">'+SYM[s]+'</span>'
-          +'<span style="color:'+col+';letter-spacing:.5px">'+val+'</span></div>';
-      }).join('');
-      return '<div style="font-size:12px;letter-spacing:1.5px;color:#aaa;margin-bottom:4px;font-family:\'Crimson Pro\',serif;font-weight:300">'+pos+'</div>'+suits;
-    }
-    const slotN = hasCards(h.N) ? '<div style="grid-column:2;grid-row:1;text-align:center">'+dHand('N',h.N,'center')+'</div>' : '<div style="grid-column:2;grid-row:1"></div>';
-    const slotW = hasCards(h.W) ? '<div style="grid-column:1;grid-row:2;text-align:right">'+dHand('W',h.W,'right')+'</div>' : '<div style="grid-column:1;grid-row:2"></div>';
-    const slotE = hasCards(h.E) ? '<div style="grid-column:3;grid-row:2">'+dHand('E',h.E,'left')+'</div>' : '<div style="grid-column:3;grid-row:2"></div>';
-    const slotS = hasCards(h.S) ? '<div style="grid-column:2;grid-row:3;text-align:center">'+dHand('S',h.S,'center')+'</div>' : '<div style="grid-column:2;grid-row:3"></div>';
-    return '<div style="margin:32px 0">'
-      +'<div style="background:#fff;border-radius:14px;padding:28px 32px;display:inline-grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;gap:8px 28px;border:.5px solid rgba(26,21,16,.1);box-shadow:0 2px 12px rgba(26,21,16,.06)">'
-        +slotN+slotW
-        +'<div style="grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center">'
-          +'<div style="width:48px;height:48px;border:1px solid #ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#aaa;font-family:\'Crimson Pro\',serif;line-height:1.4;text-align:center;background:#fafafa">N<br>W·E<br>S</div>'
-        +'</div>'
-        +slotE+slotS
-      +'</div>'
-      +(caption ? '<div style="font-size:14px;color:var(--ink3);font-style:italic;margin-top:10px;padding-left:4px">'+esc(caption)+'</div>' : '')
-      +'</div>';
-  }
-
-    function buildInlineBidding(idx, captionFromMarker) {
-    const d = bidTables[idx];
-    if (!d) return `<em style="color:#8a7d6a">[bidding table ${idx+1} not found]</em>`;
-    const caption = d.caption || captionFromMarker || '';
-    const bids = d.bids || [];
-    const dealer = d.dealer || 'S';
-    const BT_SEATS = ['W','N','E','S'];
-    const di = BT_SEATS.indexOf(dealer);
-    if (di < 0 || !bids.length) return '';
-    let rows = '<tr>';
-    for (const s of BT_SEATS) rows += `<th>${s}</th>`;
-    rows += '</tr><tr>';
-    for (let i = 0; i < di; i++) rows += '<td></td>';
-    let col = di;
-    for (let i = 0; i < bids.length; i++){
-      if (col > 0 && col % 4 === 0) rows += '</tr><tr>';
-      rows += `<td>${bh(bids[i])}</td>`;
-      col++;
-    }
-    while (col % 4){ rows += '<td></td>'; col++; }
-    rows += '</tr>';
-    return `<div style="margin:24px 0">
-      <div style="background:var(--felt);border-radius:10px;padding:14px;display:inline-block;overflow-x:auto;max-width:100%">
-        <table class="btbl">${rows}</table>
-      </div>
-      ${caption ? `<div style="font-size:13px;color:var(--ink3);font-style:italic;margin-top:8px;padding-left:2px">${esc(caption)}</div>` : ''}
-    </div>`;
-  }
-
-  // Split on both [[diagram:N]] and [[bidding:N]] markers
-  let rawProse = String(post.prose||'');
-  const proseParts = rawProse.split(/(\[\[(?:diagram|bidding):(\d+)\]\][^\n]*)/g);
-  let proseHtml = '';
-  for (let i = 0; i < proseParts.length; i++) {
-    const part = proseParts[i];
-    const mDiag = part.match(/^\[\[diagram:(\d+)\]\](.*)/);
-    const mBid  = part.match(/^\[\[bidding:(\d+)\]\](.*)/);
-    if (mDiag) {
-      const idx = parseInt(mDiag[1]);
-      const cap = mDiag[2].trim();
-      proseHtml += '</p>' + buildInlineDiagram(idx, cap) + '<p>';
-    } else if (mBid) {
-      const idx = parseInt(mBid[1]);
-      const cap = mBid[2].trim();
-      proseHtml += '</p>' + buildInlineBidding(idx, cap) + '<p>';
-    } else {
-      proseHtml += part
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        // justify blocks: :::justify ... :::
-        .replace(/:::justify\n([\s\S]*?)\n:::/g, (_,t)=>'</p><p style="text-align:justify">'+t+'</p><p>')
-        // headings
-        .replace(/^## (.+)$/gm, (_,t)=>'</p><h2 style="font-size:22px;font-weight:600;margin:28px 0 10px;color:var(--ink)">'+t+'</h2><p>')
-        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g,'<em>$1</em>')
-        .replace(/__(.+?)__/g,'<span style="text-decoration:underline">$1</span>')
-        .replace(/\n\n+/g,'</p><p>')
-        .replace(/\n/g,'<br>');
-    }
-  }
+  const proseHtml=String(post.prose||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/\n\n+/g,'</p><p>')
+    .replace(/\n/g,'<br>');
 
   document.title=post.title+' — Bridge Analysis';
-
-  // Show edit/delete in topbar when admin mode active
-  const isAdmin = window.location.search.includes('admin=1') || window._adminMode;
-  if(isAdmin){
-    const eb=document.getElementById('editBtn'); if(eb)eb.style.display='';
-    const db=document.getElementById('deleteBtn'); if(db)db.style.display='';
-  }
-  const adminBar='';
-
-  let viewerHtml='';
-  if(hasPlay||hasBid){
-    const playTab=hasPlay?`<button class="play-tab on" onclick="switchPlayTab('play',this)">▶ Play</button>`:'';
-    const bidTab=hasBid?`<button class="play-tab ${hasPlay?'':'on'}" onclick="switchPlayTab('bid',this)">Bidding</button>`:'';
-    const playPanel=hasPlay?`<div id="ptp-play" class="play-tab-panel on"><div id="pv-root">${renderPV()}</div></div>`:'';
-    const bidPanel=hasBid?`<div id="ptp-bid" class="play-tab-panel ${hasPlay?'':'on'}">${renderBidding(post.bidding,post.dealer||'N')}</div>`:'';
-    viewerHtml=`<div class="play-section">
-      <div style="background:var(--felt);border-radius:12px 12px 0 0">
-        <div class="play-tabs">${playTab}${bidTab}</div>
-      </div>
-      ${playPanel}${bidPanel}
-    </div>`;
-  }
-
   document.getElementById('wrap').innerHTML=`
-    ${adminBar}
     <h1>${esc(post.title)}</h1>
     <div class="meta">
       <span>${dateStr}</span>
-      ${post.author?`<span class="meta-sep">·</span><span>${esc(post.author)}</span>`:''}
-      ${post.group?`<span class="meta-sep">·</span><span style="color:var(--gold)">${esc(post.group)}</span>`:''}
       ${contractStr?`<span class="meta-sep">·</span><span>${contractStr}</span>`:''}
       ${vulStr&&vulStr!=='None'?`<span class="meta-sep">·</span><span>${vulStr}</span>`:''}
     </div>
-    ${(post.tags||[]).length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">${(post.tags||[]).map(t=>`<span style="font-size:13px;padding:3px 12px;border-radius:12px;border:.5px solid #c8a94a;color:#8a4a00;font-family:'Aptos','Segoe UI',system-ui,sans-serif;letter-spacing:.4px">${t}</span>`).join('')}</div>`:''}
     <div class="diagram">
       <div class="hand-N">${hb('N',post.hand?.N,'center')}</div>
       <div class="hand-W">${hb('W',post.hand?.W,'right')}</div>
@@ -446,77 +111,55 @@ function render(post){
       <div class="hand-E">${hb('E',post.hand?.E,'left')}</div>
       <div class="hand-S">${hb('S',post.hand?.S,'center')}</div>
     </div>
-    ${viewerHtml}
     <div class="prose"><p>${proseHtml}</p></div>
     ${post.lin?`<a class="bbo-link" href="${bboUrl}" target="_blank">View hand in BBO ↗</a>`:''}
   `;
 }
 
-try{
-  const hash=window.location.hash.slice(1);
-  if(hash){
-    const post=JSON.parse(decodeURIComponent(hash));
-    _currentPost=post;
-    if(post.play&&post.play.length)initViewer(post);
-    render(post);
-    // Load Firebase for delete functionality
-    (function(){
-      function ls(src,cb){const s=document.createElement('script');s.src=src;s.onload=cb;s.onerror=cb;document.head.appendChild(s);}
-      ls('https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js',function(){
-        ls('https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js',function(){
-          window._fbReady=true;
-          if(window._pendingDelete)window._pendingDelete();
-        });
+function showError(msg){
+  document.getElementById('wrap').innerHTML=`<p style="color:#8a7d6a;font-style:italic;padding-top:40px">${msg} <a href="blog-index.html" style="color:#c8a94a">Back to index</a>.</p>`;
+}
+
+/* Load post by id from Firebase. Falls back to the old hash-encoded
+   format so links already shared/indexed under the old scheme still work. */
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  function loadScript(src, cb){
+    const s = document.createElement('script'); s.src = src;
+    s.onload = cb; s.onerror = () => showError('Could not connect.');
+    document.head.appendChild(s);
+  }
+
+  if (id) {
+    loadScript('https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js', function(){
+      loadScript('https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js', function(){
+        try {
+          if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+          firebase.database().ref('blog/posts/' + id).once('value', snap => {
+            const post = snap.val();
+            if (post) render(post);
+            else showError('Post not found.');
+          });
+        } catch(e) { showError('Could not load post.'); }
       });
-    })();
+    });
+    return;
+  }
+
+  // Legacy fallback: old links encoded the full post JSON in the hash
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    try {
+      render(JSON.parse(decodeURIComponent(hash)));
+    } catch(e) {
+      showError('Could not load post.');
+    }
   } else {
-    document.getElementById('wrap').innerHTML='<p style="color:#8a7d6a;font-style:italic;padding-top:40px">No post data. <a href="index.html" style="color:#c8a94a">Back to index</a>.</p>';
+    showError('No post specified.');
   }
-}catch(e){
-  document.getElementById('wrap').innerHTML='<p style="color:#8a7d6a;font-style:italic;padding-top:40px">Could not load post. <a href="index.html" style="color:#c8a94a">Back to index</a>.</p>'
-    +'<p style="color:#b02020;font-size:12px;font-family:monospace;margin-top:8px">'+String(e)+'</p>';
-}
-
-// Admin mode: ?admin=1 in URL, or press Shift+Ctrl+A
-window._adminMode = window.location.search.includes('admin=1');
-document.addEventListener('keydown', function(e){
-  if(e.shiftKey && e.ctrlKey && e.key === 'A'){
-    window._adminMode = !window._adminMode;
-    const show = window._adminMode;
-    const eb=document.getElementById('editBtn'); if(eb)eb.style.display=show?'':'none';
-    const db=document.getElementById('deleteBtn'); if(db)db.style.display=show?'':'none';
-  }
-});
-
-function editPost(){
-  if(!_currentPost)return;
-  // Duplicate: strip _id so blog-post treats it as a new post
-  // The original stays in Firebase; you can delete it manually afterwards
-  const copy = Object.assign({}, _currentPost);
-  delete copy._id;
-  const data = encodeURIComponent(JSON.stringify(copy));
-  window.location = 'blog-post.html#' + data;
-}
-
-function deletePost(){
-  if(!_currentPost||!_currentPost._id)return;
-  if(!confirm('Delete "'+_currentPost.title+'"? This cannot be undone.'))return;
-  // Load Firebase and delete
-  function doDelete(){
-    try{
-      if(!firebase.apps.length)firebase.initializeApp({
-        apiKey:"AIzaSyCem5EbVUeKJUihyEppP1iPEh6aYNNvKhc",
-        databaseURL:"https://coaching-u26-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId:"coaching-u26",appId:"1:928921692411:web:b95f23533ee39461db685e"
-      });
-      firebase.database().ref('blog/posts/'+_currentPost._id).remove().then(()=>{
-        window.location='index.html';
-      }).catch(e=>alert('Delete failed: '+e.message));
-    }catch(e){alert('Firebase error: '+e.message);}
-  }
-  if(window._fbReady)doDelete();
-  else{window._pendingDelete=doDelete;}
-}
+})();
 </script>
 </body>
 </html>
