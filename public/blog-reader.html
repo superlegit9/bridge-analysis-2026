@@ -139,8 +139,9 @@ function fmtContract(c){
   if(!m) return esc(c);
   const level=m[1], strainRaw=m[2].toUpperCase(), dbl=m[3]||'';
   const strain = strainRaw==='N' ? 'NT' : strainRaw;
-  const strainDisp = strain==='NT' ? 'NT' : SYM[strain];
-  return esc(level+strainDisp+dbl);
+  const SUIT_COLOR = {S:'#5b9bd5',H:'#e06060',D:'#e8a35c',C:'#7fbf7f'};
+  const strainDisp = strain==='NT' ? 'NT' : '<span style="color:'+SUIT_COLOR[strain]+'">'+SYM[strain]+'</span>';
+  return esc(level) + strainDisp + esc(dbl);
 }
 function rankVal(r){const i=RANK_ORDER.indexOf(r);return i===-1?99:i;}
 
