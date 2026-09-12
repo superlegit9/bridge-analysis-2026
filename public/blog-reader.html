@@ -24,19 +24,22 @@ h1{font-size:38px;font-weight:300;letter-spacing:-.5px;line-height:1.2;margin-bo
 
 /* Static diagram */
 .diagram{background:var(--felt);border-radius:12px;padding:22px;margin:0 0 16px;display:inline-grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;gap:6px 14px}
-.hand-N{grid-column:2;grid-row:1;text-align:center}
-.hand-W{grid-column:1;grid-row:2;text-align:right}
+.hand-N{grid-column:2;grid-row:1;text-align:left}
+.hand-W{grid-column:1;grid-row:2;text-align:left}
 .hand-ctr{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center}
 .hand-E{grid-column:3;grid-row:2}
-.hand-S{grid-column:2;grid-row:3;text-align:center}
+.hand-S{grid-column:2;grid-row:3;text-align:left}
 .ctr-rose{width:46px;height:46px;border:.5px solid rgba(200,169,74,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(245,240,232,.4);font-family:'Aptos','Segoe UI',system-ui,sans-serif;line-height:1.4;text-align:center}
+.ctr-rose.has-contract{width:56px;height:56px;font-size:8px;color:var(--gold2);flex-direction:column}
+.ctr-rose .ctr-contract{font-size:16px;font-weight:600;line-height:1.1}
+.ctr-rose .ctr-declarer{font-size:9px;color:rgba(245,240,232,.5);margin-top:2px;letter-spacing:.5px}
 .pos-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:3px;font-family:'Crimson Pro',serif}
 .hand-suits{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8}
 .suit-row{display:flex;align-items:center;gap:5px;white-space:nowrap}
 .suit-row.right{justify-content:flex-end}
 .suit-row.center{justify-content:center}
 .sym{display:inline-block;width:1.1em;flex-shrink:0;text-align:center}
-.S,.C{color:#f5f0e8}.H,.D{color:#e06060}
+.S{color:#5b9bd5}.H{color:#e06060}.D{color:#e8a35c}.C{color:#7fbf7f}
 .void-card{color:rgba(245,240,232,.25);font-style:italic}
 
 /* Viewer tabs */
@@ -130,6 +133,15 @@ const autoTimers={};
 let _currentPost=null;
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtContract(c){
+  if(!c) return '';
+  const m = String(c).trim().match(/^(\d)(NT|N|S|H|D|C)(XX|X)?$/i);
+  if(!m) return esc(c);
+  const level=m[1], strainRaw=m[2].toUpperCase(), dbl=m[3]||'';
+  const strain = strainRaw==='N' ? 'NT' : strainRaw;
+  const strainDisp = strain==='NT' ? 'NT' : SYM[strain];
+  return esc(level+strainDisp+dbl);
+}
 function rankVal(r){const i=RANK_ORDER.indexOf(r);return i===-1?99:i;}
 
 function hb(pos,h,align){
@@ -316,22 +328,21 @@ function render(post){
     function hasCards(hand){ return hand && ['S','H','D','C'].some(s=>(hand[s]||[]).length>0); }
     function dHand(pos, hand, align){
       if (!hasCards(hand)) return '';
+      const SUIT_COLOR = {S:'#1a5fb4',H:'#c0392b',D:'#d2691e',C:'#1f7a3d'};
       const suits = ['S','H','D','C'].map(s => {
         const cards = (hand&&hand[s])||[];
-        const isRed = s==='H'||s==='D';
-        const col = isRed ? '#b02020' : '#1a1510';
+        const col = SUIT_COLOR[s];
         const val = cards.length ? cards.join(' ') : '<span style="color:#ccc;font-style:italic">\u2014</span>';
-        const justify = align==='right' ? 'flex-end' : align==='center' ? 'center' : 'flex-start';
-        return '<div style="display:flex;align-items:baseline;gap:8px;justify-content:'+justify+';white-space:nowrap;font-family:\'Crimson Pro\',Georgia,serif;font-size:16px;line-height:2">'
+        return '<div style="display:flex;align-items:baseline;gap:8px;justify-content:flex-start;white-space:nowrap;font-family:\'Crimson Pro\',Georgia,serif;font-size:16px;line-height:2">'
           +'<span style="color:'+col+';width:18px;flex-shrink:0;font-size:17px">'+SYM[s]+'</span>'
           +'<span style="color:'+col+';letter-spacing:.5px">'+val+'</span></div>';
       }).join('');
       return '<div style="font-size:12px;letter-spacing:1.5px;color:#aaa;margin-bottom:4px;font-family:\'Crimson Pro\',serif;font-weight:300">'+pos+'</div>'+suits;
     }
-    const slotN = hasCards(h.N) ? '<div style="grid-column:2;grid-row:1;text-align:center">'+dHand('N',h.N,'center')+'</div>' : '<div style="grid-column:2;grid-row:1"></div>';
-    const slotW = hasCards(h.W) ? '<div style="grid-column:1;grid-row:2;text-align:right">'+dHand('W',h.W,'right')+'</div>' : '<div style="grid-column:1;grid-row:2"></div>';
+    const slotN = hasCards(h.N) ? '<div style="grid-column:2;grid-row:1;text-align:left">'+dHand('N',h.N,'left')+'</div>' : '<div style="grid-column:2;grid-row:1"></div>';
+    const slotW = hasCards(h.W) ? '<div style="grid-column:1;grid-row:2;text-align:left">'+dHand('W',h.W,'left')+'</div>' : '<div style="grid-column:1;grid-row:2"></div>';
     const slotE = hasCards(h.E) ? '<div style="grid-column:3;grid-row:2">'+dHand('E',h.E,'left')+'</div>' : '<div style="grid-column:3;grid-row:2"></div>';
-    const slotS = hasCards(h.S) ? '<div style="grid-column:2;grid-row:3;text-align:center">'+dHand('S',h.S,'center')+'</div>' : '<div style="grid-column:2;grid-row:3"></div>';
+    const slotS = hasCards(h.S) ? '<div style="grid-column:2;grid-row:3;text-align:left">'+dHand('S',h.S,'left')+'</div>' : '<div style="grid-column:2;grid-row:3"></div>';
     return '<div style="margin:32px 0">'
       +'<div style="background:#fff;border-radius:14px;padding:28px 32px;display:inline-grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;gap:8px 28px;border:.5px solid rgba(26,21,16,.1);box-shadow:0 2px 12px rgba(26,21,16,.06)">'
         +slotN+slotW
@@ -440,11 +451,15 @@ function render(post){
     </div>
     ${(post.tags||[]).length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">${(post.tags||[]).map(t=>`<span style="font-size:13px;padding:3px 12px;border-radius:12px;border:.5px solid #c8a94a;color:#8a4a00;font-family:'Aptos','Segoe UI',system-ui,sans-serif;letter-spacing:.4px">${t}</span>`).join('')}</div>`:''}
     <div class="diagram">
-      <div class="hand-N">${hb('N',post.hand?.N,'center')}</div>
-      <div class="hand-W">${hb('W',post.hand?.W,'right')}</div>
-      <div class="hand-ctr"><div class="ctr-rose">N<br>W·E<br>S</div></div>
+      <div class="hand-N">${hb('N',post.hand?.N,'left')}</div>
+      <div class="hand-W">${hb('W',post.hand?.W,'left')}</div>
+      <div class="hand-ctr"><div class="ctr-rose${post.contract ? ' has-contract' : ''}">${
+        post.contract
+          ? '<div class="ctr-contract">'+fmtContract(post.contract)+'</div>'+(post.declarer ? '<div class="ctr-declarer">by '+esc(post.declarer)+'</div>' : '')
+          : 'N<br>W·E<br>S'
+      }</div></div>
       <div class="hand-E">${hb('E',post.hand?.E,'left')}</div>
-      <div class="hand-S">${hb('S',post.hand?.S,'center')}</div>
+      <div class="hand-S">${hb('S',post.hand?.S,'left')}</div>
     </div>
     ${viewerHtml}
     <div class="prose"><p>${proseHtml}</p></div>
@@ -528,7 +543,7 @@ document.addEventListener('keydown', function(e){
 function editPost(){
   if(!_currentPost)return;
   const data = encodeURIComponent(JSON.stringify(_currentPost));
-  window.location = 'blog-post.html#' + data;
+  window.location = 'blog-post.html?admin=1#' + data;
 }
 
 function deletePost(){
