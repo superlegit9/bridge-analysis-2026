@@ -409,7 +409,10 @@ function render(post){
   }
 
   // Split on both [[diagram:N]] and [[bidding:N]] markers
-  let rawProse = String(post.prose||'');
+  let rawProse = String(post.prose||'')
+    .split('\n')
+    .filter(line => !/^\s*\d+\s*$/.test(line))
+    .join('\n');
   const proseParts = rawProse.split(/(\[\[(?:diagram|bidding):(\d+)\]\][^\n]*)/g);
   let proseHtml = '';
   for (let i = 0; i < proseParts.length; i++) {
@@ -427,6 +430,12 @@ function render(post){
     } else {
       proseHtml += part
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        // card tokens: suit letter + rank -> coloured symbol + rank, e.g. h2 -> ♥2
+        .replace(/\b([SHDCshdc])(10|[2-9]|[JQKAjqka])\b/g, (m, s, r) => {
+          const suit = s.toUpperCase();
+          const rank = r.toUpperCase();
+          return '<span class="'+suit+'">'+SYM[suit]+'</span>'+rank;
+        })
         // justify blocks: :::justify ... :::
         .replace(/:::justify\n([\s\S]*?)\n:::/g, (_,t)=>'</p><p style="text-align:justify">'+t+'</p><p>')
         // headings
@@ -518,9 +527,12 @@ function initDiagramScrollSync(post, diagrams){
       const idx = parseInt(entry.target.getAttribute('data-diag-idx'), 10);
       if (entry.isIntersecting) {
         showInline(idx);
-      } else if (activeIdx === idx) {
+      } else if (idx === 0 && entry.boundingClientRect.top > 0) {
+        // Scrolled back up above the first diagram — revert to the main hand
         showMain();
       }
+      // All other exits are ignored: the sidebar persists on the last-seen
+      // diagram until the next one scrolls into view
     }
   }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
 
