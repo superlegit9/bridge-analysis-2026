@@ -16,8 +16,17 @@ body{font-family:'Aptos','Segoe UI',system-ui,sans-serif;background:var(--cream)
 .back{margin-left:auto;font-size:13px;color:rgba(245,240,232,.5);text-decoration:none;font-style:italic;transition:color .15s}
 .back:hover{color:var(--gold)}
 
-.wrap{max-width:680px;margin:0 auto;padding:52px 24px}
+.wrap{max-width:1080px;margin:0 auto;padding:52px 24px}
 h1{font-size:38px;font-weight:300;letter-spacing:-.5px;line-height:1.2;margin-bottom:12px}
+
+.article-grid{display:flex;gap:44px;align-items:flex-start}
+.sidebar{flex:0 0 300px;position:sticky;top:24px}
+.sidebar-label{font-size:12px;color:var(--ink3);font-style:italic;margin-top:10px;text-align:center;min-height:16px}
+.content{flex:1;min-width:0}
+@media (max-width:860px){
+  .article-grid{display:block}
+  .sidebar{position:static;margin:0 0 28px;display:flex;flex-direction:column;align-items:center}
+}
 
 .meta{font-size:14px;color:var(--ink3);font-style:italic;margin-bottom:28px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding-bottom:20px;border-bottom:.5px solid rgba(26,21,16,.1)}
 .meta-sep{color:var(--gold)}
@@ -309,6 +318,20 @@ function switchPlayTab(name,btn){
   const el=document.getElementById('ptp-'+name);if(el)el.classList.add('on');
 }
 
+function diagramBlockHtml(hand, contract, declarer){
+  return `<div class="diagram">
+      <div class="hand-N">${hb('N',hand?.N,'left')}</div>
+      <div class="hand-W">${hb('W',hand?.W,'left')}</div>
+      <div class="hand-ctr"><div class="ctr-rose${contract ? ' has-contract' : ''}">${
+        contract
+          ? '<div class="ctr-contract">'+fmtContract(contract)+'</div>'+(declarer ? '<div class="ctr-declarer">by '+esc(declarer)+'</div>' : '')
+          : 'N<br>W·E<br>S'
+      }</div></div>
+      <div class="hand-E">${hb('E',hand?.E,'left')}</div>
+      <div class="hand-S">${hb('S',hand?.S,'left')}</div>
+    </div>`;
+}
+
 function render(post){
   const dateStr=new Date(post.date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const contractStr=post.contract?(post.contract+(post.declarer?' by '+post.declarer:'')):'';
@@ -344,7 +367,7 @@ function render(post){
     const slotW = hasCards(h.W) ? '<div style="grid-column:1;grid-row:2;text-align:left">'+dHand('W',h.W,'left')+'</div>' : '<div style="grid-column:1;grid-row:2"></div>';
     const slotE = hasCards(h.E) ? '<div style="grid-column:3;grid-row:2">'+dHand('E',h.E,'left')+'</div>' : '<div style="grid-column:3;grid-row:2"></div>';
     const slotS = hasCards(h.S) ? '<div style="grid-column:2;grid-row:3;text-align:left">'+dHand('S',h.S,'left')+'</div>' : '<div style="grid-column:2;grid-row:3"></div>';
-    return '<div style="margin:32px 0">'
+    return '<div style="margin:32px 0" data-diag-idx="'+idx+'">'
       +'<div style="background:#fff;border-radius:14px;padding:28px 32px;display:inline-grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;gap:8px 28px;border:.5px solid rgba(26,21,16,.1);box-shadow:0 2px 12px rgba(26,21,16,.06)">'
         +slotN+slotW
         +'<div style="grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center">'
@@ -451,21 +474,58 @@ function render(post){
       ${vulStr&&vulStr!=='None'?`<span class="meta-sep">·</span><span>${vulStr}</span>`:''}
     </div>
     ${(post.tags||[]).length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">${(post.tags||[]).map(t=>`<span style="font-size:13px;padding:3px 12px;border-radius:12px;border:.5px solid #c8a94a;color:#8a4a00;font-family:'Aptos','Segoe UI',system-ui,sans-serif;letter-spacing:.4px">${t}</span>`).join('')}</div>`:''}
-    <div class="diagram">
-      <div class="hand-N">${hb('N',post.hand?.N,'left')}</div>
-      <div class="hand-W">${hb('W',post.hand?.W,'left')}</div>
-      <div class="hand-ctr"><div class="ctr-rose${post.contract ? ' has-contract' : ''}">${
-        post.contract
-          ? '<div class="ctr-contract">'+fmtContract(post.contract)+'</div>'+(post.declarer ? '<div class="ctr-declarer">by '+esc(post.declarer)+'</div>' : '')
-          : 'N<br>W·E<br>S'
-      }</div></div>
-      <div class="hand-E">${hb('E',post.hand?.E,'left')}</div>
-      <div class="hand-S">${hb('S',post.hand?.S,'left')}</div>
+    <div class="article-grid">
+      <div class="sidebar">
+        <div id="sidebarPanel">${diagramBlockHtml(post.hand, post.contract, post.declarer)}</div>
+        <div class="sidebar-label" id="sidebarLabel"></div>
+      </div>
+      <div class="content">
+        ${viewerHtml}
+        <div class="prose"><p>${proseHtml}</p></div>
+        ${post.lin?`<a class="bbo-link" href="${bboUrl}" target="_blank">View hand in BBO ↗</a>`:''}
+      </div>
     </div>
-    ${viewerHtml}
-    <div class="prose"><p>${proseHtml}</p></div>
-    ${post.lin?`<a class="bbo-link" href="${bboUrl}" target="_blank">View hand in BBO ↗</a>`:''}
   `;
+
+  initDiagramScrollSync(post, diagrams);
+}
+
+function initDiagramScrollSync(post, diagrams){
+  if (window._diagObserver) { window._diagObserver.disconnect(); window._diagObserver = null; }
+  const nodes = document.querySelectorAll('[data-diag-idx]');
+  if (!nodes.length) return;
+
+  let activeIdx = null;
+  const panel = document.getElementById('sidebarPanel');
+  const label = document.getElementById('sidebarLabel');
+  if (!panel) return;
+
+  function showMain(){
+    activeIdx = null;
+    panel.innerHTML = diagramBlockHtml(post.hand, post.contract, post.declarer);
+    if (label) label.textContent = '';
+  }
+  function showInline(idx){
+    activeIdx = idx;
+    const d = diagrams[idx];
+    if (!d) return;
+    panel.innerHTML = diagramBlockHtml(d.hand, null, null);
+    if (label) label.textContent = d.caption || '';
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const idx = parseInt(entry.target.getAttribute('data-diag-idx'), 10);
+      if (entry.isIntersecting) {
+        showInline(idx);
+      } else if (activeIdx === idx) {
+        showMain();
+      }
+    }
+  }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+
+  window._diagObserver = observer;
+  nodes.forEach(n => observer.observe(n));
 }
 
 function loadFirebaseThen(cb){
